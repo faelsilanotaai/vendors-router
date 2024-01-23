@@ -5,6 +5,7 @@ import { Cache } from 'cache-manager';
 import { Model } from 'mongoose';
 
 const VENDOR_QUEUE_KEY = 'vendors-queue';
+const LOCK_VENDOR_SELECT = 'lock-vendor-select';
 
 @Injectable()
 export class AppService {
@@ -12,6 +13,7 @@ export class AppService {
     @InjectModel('vendors') private readonly vendorsModel: Model<any>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
+    this.cacheManager.set(LOCK_VENDOR_SELECT, false);
     this.buildVendorsQueue().then((_) => console.log('Vendors Queue Loaded'));
   }
 
@@ -31,6 +33,14 @@ export class AppService {
   }
 
   async getResponsible() {
+    const lockingRun = await this.cacheManager.get(LOCK_VENDOR_SELECT);
+
+    if (lockingRun) {
+      this.getResponsible();
+    }
+
+    await this.cacheManager.set(LOCK_VENDOR_SELECT, true);
+
     const cacheString = (await this.cacheManager.get(
       VENDOR_QUEUE_KEY,
     )) as string;
@@ -50,6 +60,8 @@ export class AppService {
     vendorsQueue[0].currentWeight -= 1;
 
     await this.cacheManager.set(VENDOR_QUEUE_KEY, JSON.stringify(vendorsQueue));
+
+    await this.cacheManager.set(LOCK_VENDOR_SELECT, false);
 
     return {
       vendorSelect,
