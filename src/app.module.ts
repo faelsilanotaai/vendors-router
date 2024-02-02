@@ -11,7 +11,6 @@ import { redisStore } from 'cache-manager-redis-store';
     MongooseModule.forFeature([{ name: 'vendors', schema: {} }]),
     CacheModule.register<any>({
       store: redisStore,
-      // Store-specific configuration:
       host: 'localhost',
       port: 6379,
     }),
